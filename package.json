@@ -1,0 +1,24 @@
+{
+	"name": "markdv-monorepo",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"packages/*",
+		"apps/*"
+	],
+	"scripts": {
+		"build": "npm run build -w @markdv/core && npm run build -w markdv && npm run build -w @markdv/web",
+		"build:core": "npm run build -w @markdv/core",
+		"build:cli": "npm run build -w @markdv/core && npm run build -w markdv",
+		"build:web": "npm run build -w @markdv/core && npm run build -w @markdv/web",
+		"dev:cli": "npm run dev -w markdv",
+		"dev:web": "npm run dev -w @markdv/web",
+		"test": "prettier --check . && npm run build:core && npm test -w markdv"
+	},
+	"devDependencies": {
+		"@vdemedes/prettier-config": "^2.0.1",
+		"prettier": "^2.8.7"
+	},
+	"prettier": "@vdemedes/prettier-config"
+}
