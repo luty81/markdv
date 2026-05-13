@@ -1,22 +1,23 @@
 {
-	"name": "markdv",
+	"name": "@luty81/markdv",
 	"version": "0.0.3",
 	"license": "MIT",
-	"bin": "dist/cli.js",
+	"bin": {
+		"markdv": "dist/cli.js"
+	},
 	"type": "module",
 	"engines": {
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc",
-		"dev": "tsc --watch",
+		"build": "tsup",
+		"dev": "tsup --watch",
 		"test": "ava"
 	},
 	"files": [
 		"dist"
 	],
 	"dependencies": {
-		"@markdv/core": "*",
 		"ink": "^4.1.0",
 		"marked": "^15.0.12",
 		"marked-terminal": "^7.3.0",
@@ -24,11 +25,13 @@
 		"react": "^18.2.0"
 	},
 	"devDependencies": {
+		"@markdv/core": "*",
 		"@sindresorhus/tsconfig": "^3.0.1",
 		"@types/react": "^18.0.32",
 		"ava": "^5.2.0",
 		"ink-testing-library": "^3.0.0",
 		"ts-node": "^10.9.1",
+		"tsup": "^8.5.1",
 		"typescript": "^5.0.3"
 	},
 	"ava": {

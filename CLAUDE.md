@@ -18,15 +18,15 @@ The CLI is the only target with real functionality. The web app is a placeholder
 
 All run from the repo root unless noted.
 
-- `npm install` — installs every workspace's deps into a single hoisted `node_modules` and symlinks `@markdv/core` / `markdv` / `@markdv/web` into it.
+- `npm install` — installs every workspace's deps into a single hoisted `node_modules` and symlinks `@markdv/core` / `@luty81/markdv` / `@markdv/web` into it.
 - `npm run build` — builds all workspaces **in dep order** (`@markdv/core` first, then the apps). CI-safe.
 - `npm run build:core` / `build:cli` / `build:web` — build a single target (the cli and web variants build `core` first because the apps import from `dist/`).
 - `npm run dev:cli` — `tsc --watch` in `apps/cli`. Run `node apps/cli/dist/cli.js [path]` from another terminal to exercise it.
 - `npm run dev:web` — `vite` dev server for `apps/web` (default port 5173).
 - `npm test` — prettier on the whole repo, then builds core, then runs `ava` in `apps/cli`. Web has no tests yet.
-- `npm test -w markdv -- -m '<pattern>'` — run a single CLI test by title.
+- `npm test -w @luty81/markdv -- -m '<pattern>'` — run a single CLI test by title.
 
-CLI binary path is `apps/cli/dist/cli.js`. There's no global `markdv` link after the workspace migration; either invoke `node apps/cli/dist/cli.js` or run `npm link -w markdv` (from root) once to re-link.
+CLI binary path is `apps/cli/dist/cli.js`. There's no global `markdv` link after the workspace migration; either invoke `node apps/cli/dist/cli.js` or run `npm link -w @luty81/markdv` (from root) once to re-link.
 
 ## CI/CD
 
@@ -34,7 +34,7 @@ There is **no remote CI** — quality gates run as local git hooks via husky 9 +
 
 - **`.husky/pre-commit`** runs `npx lint-staged`, which formats staged files matching the glob in `package.json#lint-staged` with `prettier --write` (and re-stages them). Only touches changed files, so it stays fast.
 - **`.husky/pre-push`** runs `npm run build && npm test`. This is the full quality gate — it builds all three workspaces (which is also the only typecheck step, since ava runs in transpile-only mode) and runs ava in `apps/cli`. Failures here block the push.
-- **`scripts/release.mjs`** (invoked via `npm run release <patch|minor|major>`) refuses to run unless the working tree is clean and you're on `main`. It then: builds, tests, bumps `apps/cli/package.json` via `npm version -w markdv --no-git-tag-version`, commits the bump + lockfile, tags `v<version>`, publishes the `markdv` workspace to npm with `--access public`, and pushes the tag if an `origin` remote exists.
+- **`scripts/release.mjs`** (invoked via `npm run release <patch|minor|major>`) refuses to run unless the working tree is clean and you're on `main`. It then: builds, tests, bumps `apps/cli/package.json` via `npm version -w @luty81/markdv --no-git-tag-version`, commits the bump + lockfile, tags `v<version>`, publishes the `@luty81/markdv` workspace to npm with `--access public`, and pushes the tag if an `origin` remote exists. The package is published under the `@luty81` scope because npm blocks the unscoped name `markdv` as too similar to `marked`; the `bin` is still `markdv`, so the CLI is invoked the same way.
 
 The release flow does **not** require an NPM_TOKEN env var — it shells out to `npm publish`, so credentials come from your local npm login (`npm login`). If you ever add a remote CI runner for tag-triggered publish, you'd want to factor the publish step out and feed it `NODE_AUTH_TOKEN` there.
 

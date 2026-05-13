@@ -34,7 +34,7 @@ if (branch !== 'main') {
 run('npm run build');
 run('npm test');
 
-run(`npm version ${bump} -w markdv --no-git-tag-version`);
+run(`npm version ${bump} -w @luty81/markdv --no-git-tag-version`);
 
 const pkg = JSON.parse(readFileSync('apps/cli/package.json', 'utf8'));
 const tag = `v${pkg.version}`;
@@ -43,7 +43,7 @@ run('git add apps/cli/package.json package-lock.json');
 run(`git commit -m "release: ${tag}"`);
 run(`git tag ${tag}`);
 
-run('npm publish -w markdv --access public');
+run('npm publish -w @luty81/markdv --access public');
 
 const hasRemote = (() => {
 	try {
