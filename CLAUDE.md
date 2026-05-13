@@ -28,6 +28,18 @@ All run from the repo root unless noted.
 
 CLI binary path is `apps/cli/dist/cli.js`. There's no global `markdv` link after the workspace migration; either invoke `node apps/cli/dist/cli.js` or run `npm link -w markdv` (from root) once to re-link.
 
+## CI/CD
+
+There is **no remote CI** — quality gates run as local git hooks via husky 9 + lint-staged, and releases are kicked off by a manual script. The `prepare` script in root `package.json` re-installs husky after every `npm install`, so a fresh clone is one command away from working hooks.
+
+- **`.husky/pre-commit`** runs `npx lint-staged`, which formats staged files matching the glob in `package.json#lint-staged` with `prettier --write` (and re-stages them). Only touches changed files, so it stays fast.
+- **`.husky/pre-push`** runs `npm run build && npm test`. This is the full quality gate — it builds all three workspaces (which is also the only typecheck step, since ava runs in transpile-only mode) and runs ava in `apps/cli`. Failures here block the push.
+- **`scripts/release.mjs`** (invoked via `npm run release <patch|minor|major>`) refuses to run unless the working tree is clean and you're on `main`. It then: builds, tests, bumps `apps/cli/package.json` via `npm version -w markdv --no-git-tag-version`, commits the bump + lockfile, tags `v<version>`, publishes the `markdv` workspace to npm with `--access public`, and pushes the tag if an `origin` remote exists.
+
+The release flow does **not** require an NPM_TOKEN env var — it shells out to `npm publish`, so credentials come from your local npm login (`npm login`). If you ever add a remote CI runner for tag-triggered publish, you'd want to factor the publish step out and feed it `NODE_AUTH_TOKEN` there.
+
+Husky 9 installs delegating shims into `.husky/_/` (managed by husky, gitignored) and points `core.hooksPath` at that directory. The user-edited hook bodies live in `.husky/pre-commit` and `.husky/pre-push` — that's where to make changes.
+
 ## Architecture
 
 ### `@markdv/core` (`packages/core`)
