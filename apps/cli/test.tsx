@@ -24,3 +24,47 @@ test('lists parent navigation entry', t => {
 	const {lastFrame} = render(<App path={process.cwd()} />);
 	t.true(lastFrame()?.includes('..') ?? false);
 });
+
+const tick = () => new Promise(resolve => setTimeout(resolve, 50));
+
+// ink@4 reads stdin via the 'readable' event + stdin.read(), but
+// ink-testing-library@3 only emits 'data'. Feed input through a small
+// shim that satisfies ink's stream protocol.
+const sendInput = (stdin: NodeJS.WritableStream, data: string) => {
+	const s = stdin as unknown as {
+		_buf?: string | null;
+		read?: () => string | null;
+		emit: (event: string) => void;
+	};
+	s._buf = (s._buf ?? '') + data;
+	if (!s.read) {
+		s.read = function () {
+			const out = this._buf ?? null;
+			this._buf = null;
+			return out;
+		};
+	}
+	s.emit('readable');
+};
+
+test('pressing / opens the search prompt', async t => {
+	const {stdin, lastFrame} = render(<App path={process.cwd()} />);
+	await tick();
+	sendInput(stdin, '/');
+	await tick();
+	const frame = lastFrame() ?? '';
+	t.true(frame.includes('type to filter'));
+	t.true(frame.includes('esc cancel'));
+});
+
+test('typing filters the search results', async t => {
+	const {stdin, lastFrame} = render(<App path={process.cwd()} />);
+	await tick();
+	sendInput(stdin, '/');
+	await tick();
+	sendInput(stdin, 'app');
+	await tick();
+	const frame = lastFrame() ?? '';
+	t.true(frame.includes('/ app'));
+	t.true(frame.includes('app.tsx'));
+});

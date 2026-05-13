@@ -3,6 +3,8 @@ import type {Entry} from './types.js';
 
 export {isMarkdown, MARKDOWN_EXTS} from './markdown.js';
 export type {Entry} from './types.js';
+export {buildSearchIndex, searchIndex, DEFAULT_IGNORE_DIRS} from './search.js';
+export type {IndexedFile, SearchHit, BuildIndexOptions} from './search.js';
 
 export const readEntries = (dir: string): Entry[] => {
 	const items = fs
