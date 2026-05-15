@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import fs from 'node:fs';
 import path from 'node:path';
 import {Box, Text, useApp, useInput, useStdin, useStdout} from 'ink';
@@ -82,8 +82,11 @@ export default function App({path: initialPath}: Props) {
 	const [query, setQuery] = useState('');
 	const [index, setIndex] = useState<IndexedFile[] | null>(null);
 	const [searchSelected, setSearchSelected] = useState(0);
+	const [dirVersion, setDirVersion] = useState(0);
+	const [fileVersion, setFileVersion] = useState(0);
+	const [staleFile, setStaleFile] = useState<string | null>(null);
 
-	const entries = useMemo(() => readEntries(cwd), [cwd]);
+	const entries = useMemo(() => readEntries(cwd), [cwd, dirVersion]);
 	const current = entries[selected];
 	const cols = stdout?.columns ?? 80;
 	const rows = stdout?.rows ?? 24;
@@ -113,7 +116,41 @@ export default function App({path: initialPath}: Props) {
 	const rendered = useMemo(() => {
 		if (!previewFile) return '';
 		return renderFile(previewFile, previewWidth);
-	}, [previewFile, previewWidth]);
+	}, [previewFile, previewWidth, fileVersion]);
+
+	useEffect(() => {
+		let timer: ReturnType<typeof setTimeout> | null = null;
+		let watcher: fs.FSWatcher | null = null;
+		try {
+			watcher = fs.watch(cwd, {persistent: false}, () => {
+				if (timer) clearTimeout(timer);
+				timer = setTimeout(() => setDirVersion(v => v + 1), 100);
+			});
+			watcher.on('error', () => {});
+		} catch {}
+		return () => {
+			if (timer) clearTimeout(timer);
+			watcher?.close();
+		};
+	}, [cwd]);
+
+	useEffect(() => {
+		setStaleFile(null);
+		if (!previewFile) return;
+		let timer: ReturnType<typeof setTimeout> | null = null;
+		let watcher: fs.FSWatcher | null = null;
+		try {
+			watcher = fs.watch(previewFile, {persistent: false}, () => {
+				if (timer) clearTimeout(timer);
+				timer = setTimeout(() => setStaleFile(previewFile), 100);
+			});
+			watcher.on('error', () => {});
+		} catch {}
+		return () => {
+			if (timer) clearTimeout(timer);
+			watcher?.close();
+		};
+	}, [previewFile, fileVersion]);
 
 	const lines = useMemo(() => rendered.split('\n'), [rendered]);
 
@@ -204,9 +241,19 @@ export default function App({path: initialPath}: Props) {
 					setScroll(maxScroll);
 					return;
 				}
+				if (input === 'r' && staleFile && staleFile === previewFile) {
+					setFileVersion(v => v + 1);
+					setStaleFile(null);
+					return;
+				}
 				return;
 			}
 
+			if (input === 'r' && staleFile && staleFile === previewFile) {
+				setFileVersion(v => v + 1);
+				setStaleFile(null);
+				return;
+			}
 			if (input === '/') {
 				setIndex(buildSearchIndex(cwd));
 				setQuery('');
@@ -242,6 +289,8 @@ export default function App({path: initialPath}: Props) {
 		{isActive: isRawModeSupported},
 	);
 
+	const fileChanged = staleFile !== null && staleFile === previewFile;
+
 	if (mode === 'reader' && readerFile) {
 		return (
 			<Box flexDirection="column">
@@ -254,12 +303,20 @@ export default function App({path: initialPath}: Props) {
 						{lines.length}
 					</Text>
 				</Box>
+				{fileChanged && (
+					<Box>
+						<Text color="yellow">
+							● file changed on disk — press r to reload
+						</Text>
+					</Box>
+				)}
 				<Box>
 					<Text>{visible}</Text>
 				</Box>
 				<Box marginTop={1}>
 					<Text dimColor>
-						↑/↓ scroll · space/pgdn page · g/G top/bottom · esc back · q quit
+						↑/↓ scroll · space/pgdn page · g/G top/bottom ·{' '}
+						{fileChanged ? 'r reload · ' : ''}esc back · q quit
 					</Text>
 				</Box>
 			</Box>
@@ -356,32 +413,35 @@ export default function App({path: initialPath}: Props) {
 			<Box>
 				<Text bold>{cwd}</Text>
 			</Box>
-			<Box>
-				<Box flexDirection="column" width={32} marginRight={2}>
-					{entries.map((entry, index) => (
-						<Text
-							key={entry.name}
-							inverse={index === selected}
-							color={entry.isDir ? 'cyan' : undefined}
-						>
-							{entry.isDir ? '▸ ' : '  '}
-							{entry.name}
-						</Text>
-					))}
-				</Box>
-				<Box flexDirection="column" flexGrow={1}>
-					<Text dimColor>
-						{current?.isDir ? '(directory)' : current?.name ?? ''}
+			<Box flexDirection="column" width={32} marginRight={2}>
+				{entries.map((entry, index) => (
+					<Text
+						key={entry.name}
+						inverse={index === selected}
+						color={entry.isDir ? 'cyan' : undefined}
+					>
+						{entry.isDir ? '▸ ' : '  '}
+						{entry.name}
 					</Text>
-					<Text>{visible}</Text>
-				</Box>
+				))}
 			</Box>
-			<Box marginTop={1}>
+			<Box flexDirection="column" flexGrow={1}>
 				<Text dimColor>
-					↑/↓ select · enter {current?.isDir ? 'open dir' : 'read file'} · /
-					search · q quit
+					{current?.isDir ? '(directory)' : current?.name ?? ''}
 				</Text>
+				{fileChanged && (
+					<Text color="yellow">
+						● file changed on disk — press r to reload
+					</Text>
+				)}
+				<Text>{visible}</Text>
 			</Box>
+		<Box marginTop={1}>
+			<Text dimColor>
+				↑/↓ select · enter {current?.isDir ? 'open dir' : 'read file'} ·{' '}
+				{fileChanged ? 'r reload · ' : ''}/ search · q quit
+			</Text>
 		</Box>
+	</Box>
 	);
 }
