@@ -7,9 +7,11 @@ import {Marked} from 'marked';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import {markedTerminal} from 'marked-terminal';
+import {highlight, supportsLanguage} from 'cli-highlight';
 import {
 	readEntries,
 	isMarkdown,
+	detectLanguage,
 	buildSearchIndex,
 	searchIndex,
 	type Entry,
@@ -71,17 +73,31 @@ const splitByMatches = (text: string, needle: string): Segment[] => {
 	return out;
 };
 
+const renderMarkdown = (text: string, width: number): string => {
+	const instance = new Marked(
+		markedTerminal({
+			width: Math.max(20, width - 4),
+			reflowText: true,
+		}) as never,
+	);
+	return String(instance.parse(text)).replace(/\n$/, '');
+};
+
+const renderHighlighted = (text: string, file: string): string => {
+	const language = detectLanguage(file);
+	if (!language || !supportsLanguage(language)) return text;
+	try {
+		return highlight(text, {language, ignoreIllegals: true});
+	} catch {
+		return text;
+	}
+};
+
 const renderFile = (file: string, width: number): string => {
 	try {
 		const text = fs.readFileSync(file, 'utf8');
-		if (!isMarkdown(file)) return text;
-		const instance = new Marked(
-			markedTerminal({
-				width: Math.max(20, width - 4),
-				reflowText: true,
-			}) as never,
-		);
-		return String(instance.parse(text)).replace(/\n$/, '');
+		if (isMarkdown(file)) return renderMarkdown(text, width);
+		return renderHighlighted(text, file);
 	} catch (error) {
 		return `Cannot read: ${(error as Error).message}`;
 	}
