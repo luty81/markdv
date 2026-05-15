@@ -8,12 +8,10 @@
 		"apps/*"
 	],
 	"scripts": {
-		"build": "npm run build -w @markdv/core && npm run build -w @luty81/markdv && npm run build -w @markdv/web",
+		"build": "npm run build -w @markdv/core && npm run build -w @luty81/markdv",
 		"build:core": "npm run build -w @markdv/core",
 		"build:cli": "npm run build -w @markdv/core && npm run build -w @luty81/markdv",
-		"build:web": "npm run build -w @markdv/core && npm run build -w @markdv/web",
 		"dev:cli": "npm run dev -w @luty81/markdv",
-		"dev:web": "npm run dev -w @markdv/web",
 		"test": "prettier --check . && npm run build:core && npm test -w @luty81/markdv",
 		"release": "node scripts/release.mjs",
 		"prepare": "husky"
