@@ -1,6 +1,10 @@
-const getExtension = (file: string): string | null => {
+const getBasename = (file: string): string => {
 	const slash = Math.max(file.lastIndexOf('/'), file.lastIndexOf('\\'));
-	const name = slash >= 0 ? file.slice(slash + 1) : file;
+	return slash >= 0 ? file.slice(slash + 1) : file;
+};
+
+const getExtension = (file: string): string | null => {
+	const name = getBasename(file);
 	const dot = name.lastIndexOf('.');
 	if (dot <= 0) return null;
 	return name.slice(dot).toLowerCase();
@@ -16,6 +20,17 @@ const MARKDOWN_EXTENSIONS: ReadonlySet<string> = new Set([
 export const isMarkdown = (file: string): boolean => {
 	const ext = getExtension(file);
 	return ext !== null && MARKDOWN_EXTENSIONS.has(ext);
+};
+
+// Maps whole filenames (dotfiles or no-extension files) to highlight.js
+// language identifiers. Matched before LANGUAGE_BY_EXTENSION so files like
+// `.env` or `Dockerfile` — which have no real extension — can still be
+// highlighted.
+const LANGUAGE_BY_FILENAME: Readonly<Record<string, string>> = {
+	'.env': 'ini',
+	Dockerfile: 'dockerfile',
+	GNUmakefile: 'makefile',
+	Makefile: 'makefile',
 };
 
 // Maps file extensions to highlight.js language identifiers (used by
@@ -86,6 +101,11 @@ const LANGUAGE_BY_EXTENSION: Readonly<Record<string, string>> = {
 };
 
 export const detectLanguage = (file: string): string | null => {
+	const name = getBasename(file);
+	const byName = LANGUAGE_BY_FILENAME[name];
+	if (byName) return byName;
+	// `.env.local`, `.env.production`, etc. — all key=value config.
+	if (name.startsWith('.env.')) return 'ini';
 	const ext = getExtension(file);
 	if (ext === null) return null;
 	return LANGUAGE_BY_EXTENSION[ext] ?? null;

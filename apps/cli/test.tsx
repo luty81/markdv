@@ -4,6 +4,7 @@ import test from 'ava';
 import {render} from 'ink-testing-library';
 import App from './source/app.js';
 import {renderHighlighted} from './source/render.js';
+import {ansiToSvg} from './source/screenshot.js';
 
 const ANSI_CSI = /\x1b\[[0-9;]*m/;
 
@@ -83,4 +84,41 @@ test('renderHighlighted colorizes known source languages', t => {
 test('renderHighlighted returns plain text for unknown extensions', t => {
 	const source = 'this is just plain text\nwith a second line';
 	t.is(renderHighlighted(source, 'notes.unknownext'), source);
+});
+
+test('renderHighlighted colorizes .env files as ini', t => {
+	const source = '# comment\nAPI_KEY=abc123\nPORT=3000';
+	const out = renderHighlighted(source, '.env');
+	t.regex(out, ANSI_CSI);
+	t.true(out.includes('API_KEY'));
+});
+
+test('renderHighlighted colorizes .env.local as ini', t => {
+	const source = 'DATABASE_URL=postgres://localhost/dev';
+	const out = renderHighlighted(source, '/some/path/.env.local');
+	t.regex(out, ANSI_CSI);
+});
+
+test('renderHighlighted colorizes Dockerfile with no extension', t => {
+	const source = 'FROM node:20\nRUN npm install';
+	const out = renderHighlighted(source, 'Dockerfile');
+	t.regex(out, ANSI_CSI);
+	t.true(out.includes('FROM'));
+});
+
+test('ansiToSvg emits a well-formed SVG preserving colored spans', t => {
+	const input = '\x1b[31mhello\x1b[0m world';
+	const svg = ansiToSvg(input);
+	t.true(svg.startsWith('<svg '));
+	t.true(svg.endsWith('</svg>'));
+	t.true(svg.includes('hello'));
+	t.true(svg.includes('world'));
+	// red foreground in the 16-color table
+	t.true(svg.includes('#cd0000'));
+});
+
+test('ansiToSvg escapes XML-special characters in the output text', t => {
+	const svg = ansiToSvg('<tag attr="v">&copy;');
+	t.true(svg.includes('&lt;tag attr=&quot;v&quot;&gt;&amp;copy;'));
+	t.false(svg.includes('<tag attr="v">'));
 });

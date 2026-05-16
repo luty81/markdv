@@ -49,7 +49,7 @@ Two entrypoints, declared in `package.json#exports`:
 
 Keep this split: the moment something in the root entry imports `node:fs` (or anything via transitive deps), browser bundlers break. Both entries re-export the safe pieces so `apps/cli` can do `import {readEntries, isMarkdown, detectLanguage, type Entry} from '@markdv/core/node'` and get everything in one go.
 
-`language.ts` owns file-type detection. `isMarkdown(file)` decides whether the renderer should treat a file as markdown (rendered via `marked-terminal`); `detectLanguage(file)` returns a [highlight.js](https://highlightjs.org/) language identifier (used by `cli-highlight`) or `null`. Add new extensions to the `LANGUAGE_BY_EXTENSION` table to teach the renderer about more languages — there's no fallback to auto-detection, so an unknown extension is shown verbatim.
+`language.ts` owns file-type detection. `isMarkdown(file)` decides whether the renderer should treat a file as markdown (rendered via `marked-terminal`); `detectLanguage(file)` returns a [highlight.js](https://highlightjs.org/) language identifier (used by `cli-highlight`) or `null`. Two tables drive `detectLanguage`: `LANGUAGE_BY_FILENAME` is checked first (whole-name match for dotfiles and no-extension files like `.env`, `Dockerfile`, `Makefile`), then `LANGUAGE_BY_EXTENSION` for everything else. `.env.<anything>` is special-cased to `ini`. There's no fallback to auto-detection — anything not in either table is shown verbatim, so extend the appropriate table to teach the renderer about more files.
 
 ### `apps/cli` (the CLI)
 

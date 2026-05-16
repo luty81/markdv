@@ -10,6 +10,11 @@ import {
 	type IndexedFile,
 } from '@markdv/core/node';
 import {renderFile} from './render.js';
+import {
+	captureFrames,
+	writeScreenshot,
+	type ScreenshotFormat,
+} from './screenshot.js';
 
 type Props = {
 	path: string;
@@ -85,6 +90,9 @@ export default function App({path: initialPath}: Props) {
 	const [dirVersion, setDirVersion] = useState(0);
 	const [fileVersion, setFileVersion] = useState(0);
 	const [staleFile, setStaleFile] = useState<string | null>(null);
+	const [screenshotMessage, setScreenshotMessage] = useState<string | null>(
+		null,
+	);
 
 	const entries = useMemo(() => readEntries(cwd), [cwd, dirVersion]);
 	const current = entries[selected];
@@ -133,6 +141,27 @@ export default function App({path: initialPath}: Props) {
 			watcher?.close();
 		};
 	}, [cwd]);
+
+	useEffect(() => captureFrames(stdout), [stdout]);
+
+	useEffect(() => {
+		if (!screenshotMessage) return;
+		const timer = setTimeout(() => setScreenshotMessage(null), 2500);
+		return () => clearTimeout(timer);
+	}, [screenshotMessage]);
+
+	const takeScreenshot = (format: ScreenshotFormat) => {
+		try {
+			const file = writeScreenshot(cwd, format);
+			if (!file) {
+				setScreenshotMessage('Screenshot skipped — no frame captured yet');
+				return;
+			}
+			setScreenshotMessage(`Saved ${path.basename(file)}`);
+		} catch (error) {
+			setScreenshotMessage(`Screenshot failed: ${(error as Error).message}`);
+		}
+	};
 
 	useEffect(() => {
 		setStaleFile(null);
@@ -246,12 +275,28 @@ export default function App({path: initialPath}: Props) {
 					setStaleFile(null);
 					return;
 				}
+				if (input === 's') {
+					takeScreenshot('svg');
+					return;
+				}
+				if (input === 'S') {
+					takeScreenshot('txt');
+					return;
+				}
 				return;
 			}
 
 			if (input === 'r' && staleFile && staleFile === previewFile) {
 				setFileVersion(v => v + 1);
 				setStaleFile(null);
+				return;
+			}
+			if (input === 's') {
+				takeScreenshot('svg');
+				return;
+			}
+			if (input === 'S') {
+				takeScreenshot('txt');
 				return;
 			}
 			if (input === '/') {
@@ -310,13 +355,18 @@ export default function App({path: initialPath}: Props) {
 						</Text>
 					</Box>
 				)}
+				{screenshotMessage && (
+					<Box>
+						<Text color="green">● {screenshotMessage}</Text>
+					</Box>
+				)}
 				<Box>
 					<Text>{visible}</Text>
 				</Box>
 				<Box marginTop={1}>
 					<Text dimColor>
 						↑/↓ scroll · space/pgdn page · g/G top/bottom ·{' '}
-						{fileChanged ? 'r reload · ' : ''}esc back · q quit
+						{fileChanged ? 'r reload · ' : ''}s screenshot · esc back · q quit
 					</Text>
 				</Box>
 			</Box>
@@ -413,31 +463,38 @@ export default function App({path: initialPath}: Props) {
 			<Box>
 				<Text bold>{cwd}</Text>
 			</Box>
-			<Box flexDirection="column" width={32} marginRight={2}>
-				{entries.map((entry, index) => (
-					<Text
-						key={entry.name}
-						inverse={index === selected}
-						color={entry.isDir ? 'cyan' : undefined}
-					>
-						{entry.isDir ? '▸ ' : '  '}
-						{entry.name}
+			<Box>
+				<Box flexDirection="column" width={32} marginRight={2}>
+					{entries.map((entry, index) => (
+						<Text
+							key={entry.name}
+							inverse={index === selected}
+							color={entry.isDir ? 'cyan' : undefined}
+						>
+							{entry.isDir ? '▸ ' : '  '}
+							{entry.name}
+						</Text>
+					))}
+				</Box>
+				<Box flexDirection="column" flexGrow={1}>
+					<Text dimColor>
+						{current?.isDir ? '(directory)' : current?.name ?? ''}
 					</Text>
-				))}
-			</Box>
-			<Box flexDirection="column" flexGrow={1}>
-				<Text dimColor>
-					{current?.isDir ? '(directory)' : current?.name ?? ''}
-				</Text>
-				{fileChanged && (
-					<Text color="yellow">● file changed on disk — press r to reload</Text>
-				)}
-				<Text>{visible}</Text>
+					{fileChanged && (
+						<Text color="yellow">
+							● file changed on disk — press r to reload
+						</Text>
+					)}
+					{screenshotMessage && (
+						<Text color="green">● {screenshotMessage}</Text>
+					)}
+					<Text>{visible}</Text>
+				</Box>
 			</Box>
 			<Box marginTop={1}>
 				<Text dimColor>
 					↑/↓ select · enter {current?.isDir ? 'open dir' : 'read file'} ·{' '}
-					{fileChanged ? 'r reload · ' : ''}/ search · q quit
+					{fileChanged ? 'r reload · ' : ''}/ search · s screenshot · q quit
 				</Text>
 			</Box>
 		</Box>
