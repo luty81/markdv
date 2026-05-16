@@ -102,6 +102,8 @@ export default function App({path: initialPath}: Props) {
 	const rows = stdout?.rows ?? 24;
 
 	const previewWidth = mode === 'reader' ? cols : Math.max(20, cols - 36);
+	const previewHeight =
+		mode === 'reader' ? Math.max(5, rows - 3) : PREVIEW_LINES;
 
 	const hits = useMemo(() => {
 		if (!index) return [];
@@ -138,13 +140,13 @@ export default function App({path: initialPath}: Props) {
 		}
 		let cancelled = false;
 		setImageRender(null);
-		renderImage(previewFile, previewWidth).then(result => {
+		renderImage(previewFile, previewWidth, previewHeight).then(result => {
 			if (!cancelled) setImageRender(result);
 		});
 		return () => {
 			cancelled = true;
 		};
-	}, [previewFile, previewIsImage, previewWidth, fileVersion]);
+	}, [previewFile, previewIsImage, previewWidth, previewHeight, fileVersion]);
 
 	useEffect(() => {
 		let timer: ReturnType<typeof setTimeout> | null = null;
@@ -203,8 +205,7 @@ export default function App({path: initialPath}: Props) {
 
 	const lines = useMemo(() => rendered.split('\n'), [rendered]);
 
-	const viewportRows =
-		mode === 'reader' ? Math.max(5, rows - 3) : PREVIEW_LINES;
+	const viewportRows = previewHeight;
 	const maxScroll = Math.max(0, lines.length - viewportRows);
 	const clampedScroll = Math.min(scroll, maxScroll);
 	const visible = lines
