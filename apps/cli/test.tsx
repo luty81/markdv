@@ -2,6 +2,7 @@ import React from 'react';
 import {EventEmitter} from 'node:events';
 import test from 'ava';
 import {render} from 'ink-testing-library';
+import {isImage} from '@markdv/core/node';
 import App from './source/app.js';
 import {renderHighlighted} from './source/render.js';
 import {ansiToSvg} from './source/screenshot.js';
@@ -104,6 +105,21 @@ test('renderHighlighted colorizes Dockerfile with no extension', t => {
 	const out = renderHighlighted(source, 'Dockerfile');
 	t.regex(out, ANSI_CSI);
 	t.true(out.includes('FROM'));
+});
+
+test('isImage flags raster image extensions', t => {
+	t.true(isImage('photo.png'));
+	t.true(isImage('photo.PNG'));
+	t.true(isImage('/abs/path/to/cat.jpeg'));
+	t.true(isImage('chart.gif'));
+	t.true(isImage('shot.webp'));
+});
+
+test('isImage rejects non-images and SVG', t => {
+	t.false(isImage('notes.md'));
+	t.false(isImage('script.ts'));
+	t.false(isImage('drawing.svg'));
+	t.false(isImage('README'));
 });
 
 test('ansiToSvg emits a well-formed SVG preserving colored spans', t => {

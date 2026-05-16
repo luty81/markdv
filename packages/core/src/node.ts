@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import type {Entry} from './types.js';
 
-export {isMarkdown, detectLanguage} from './language.js';
+export {isMarkdown, isImage, detectLanguage} from './language.js';
 export type {Entry} from './types.js';
 export {buildSearchIndex, searchIndex, DEFAULT_IGNORE_DIRS} from './search.js';
 export type {IndexedFile, SearchHit, BuildIndexOptions} from './search.js';

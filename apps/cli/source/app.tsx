@@ -6,10 +6,11 @@ import {
 	readEntries,
 	buildSearchIndex,
 	searchIndex,
+	isImage,
 	type Entry,
 	type IndexedFile,
 } from '@markdv/core/node';
-import {renderFile} from './render.js';
+import {renderFile, renderImage} from './render.js';
 import {
 	captureFrames,
 	writeScreenshot,
@@ -93,6 +94,7 @@ export default function App({path: initialPath}: Props) {
 	const [screenshotMessage, setScreenshotMessage] = useState<string | null>(
 		null,
 	);
+	const [imageRender, setImageRender] = useState<string | null>(null);
 
 	const entries = useMemo(() => readEntries(cwd), [cwd, dirVersion]);
 	const current = entries[selected];
@@ -121,10 +123,28 @@ export default function App({path: initialPath}: Props) {
 		return path.join(cwd, current.name);
 	}, [mode, readerFile, selectedHit, current, cwd]);
 
+	const previewIsImage = previewFile !== null && isImage(previewFile);
+
 	const rendered = useMemo(() => {
 		if (!previewFile) return '';
+		if (previewIsImage) return imageRender ?? 'Loading image…';
 		return renderFile(previewFile, previewWidth);
-	}, [previewFile, previewWidth, fileVersion]);
+	}, [previewFile, previewWidth, fileVersion, previewIsImage, imageRender]);
+
+	useEffect(() => {
+		if (!previewFile || !previewIsImage) {
+			setImageRender(null);
+			return;
+		}
+		let cancelled = false;
+		setImageRender(null);
+		renderImage(previewFile, previewWidth).then(result => {
+			if (!cancelled) setImageRender(result);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [previewFile, previewIsImage, previewWidth, fileVersion]);
 
 	useEffect(() => {
 		let timer: ReturnType<typeof setTimeout> | null = null;

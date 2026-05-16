@@ -22,6 +22,24 @@ export const isMarkdown = (file: string): boolean => {
 	return ext !== null && MARKDOWN_EXTENSIONS.has(ext);
 };
 
+// Raster image formats rendered via terminal-image. SVG is intentionally
+// excluded — it's text and falls through to xml highlighting.
+const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set([
+	'.png',
+	'.jpg',
+	'.jpeg',
+	'.gif',
+	'.webp',
+	'.bmp',
+	'.tif',
+	'.tiff',
+]);
+
+export const isImage = (file: string): boolean => {
+	const ext = getExtension(file);
+	return ext !== null && IMAGE_EXTENSIONS.has(ext);
+};
+
 // Maps whole filenames (dotfiles or no-extension files) to highlight.js
 // language identifiers. Matched before LANGUAGE_BY_EXTENSION so files like
 // `.env` or `Dockerfile` — which have no real extension — can still be
