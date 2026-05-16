@@ -430,18 +430,16 @@ export default function App({path: initialPath}: Props) {
 					{current?.isDir ? '(directory)' : current?.name ?? ''}
 				</Text>
 				{fileChanged && (
-					<Text color="yellow">
-						● file changed on disk — press r to reload
-					</Text>
+					<Text color="yellow">● file changed on disk — press r to reload</Text>
 				)}
 				<Text>{visible}</Text>
 			</Box>
-		<Box marginTop={1}>
-			<Text dimColor>
-				↑/↓ select · enter {current?.isDir ? 'open dir' : 'read file'} ·{' '}
-				{fileChanged ? 'r reload · ' : ''}/ search · q quit
-			</Text>
+			<Box marginTop={1}>
+				<Text dimColor>
+					↑/↓ select · enter {current?.isDir ? 'open dir' : 'read file'} ·{' '}
+					{fileChanged ? 'r reload · ' : ''}/ search · q quit
+				</Text>
+			</Box>
 		</Box>
-	</Box>
 	);
 }
